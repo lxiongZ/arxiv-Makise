@@ -17,7 +17,7 @@ from openai import OpenAI
 from tqdm import tqdm
 
 
-def get_target_date(days_ago=2): # 默认2天的文章
+def get_target_date(days_ago=7): # 默认2天的文章
     today = datetime.datetime.now()
     target_date = today - datetime.timedelta(days=days_ago)
     return target_date.strftime("%Y-%m-%d")
