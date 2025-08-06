@@ -2,9 +2,9 @@ name: Daily ArXiv Paper Assistant
 
 on:
   schedule:
-    # 北京时间早上8:10 (UTC+8) = UTC时间00:10
-    # arXiv 在北京时间早上十点更新 每周一12点半
-    - cron: '30 4 * * 1'
+    # 北京时间早上9:10 (UTC+8) = UTC时间01:10
+    # 每周一 北京时间 8:30 = UTC 00:30 / 每隔7天发一次
+    - cron: '30 0 * * 1'
     # - cron: '11 01 * * *'
   # 允许手动触发工作流（用于测试）
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
           OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
           SEARCH_TERMS: ${{ secrets.SEARCH_TERMS }}
           MAX_RESULTS: ${{ secrets.MAX_RESULTS }}
-          DAYS_AGO: 30
+          DAYS_AGO: 7
         run: python arxiv_assistant.py
         
       - name: Upload logs if failed
