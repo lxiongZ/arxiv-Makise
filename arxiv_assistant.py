@@ -17,7 +17,7 @@ from openai import OpenAI
 from tqdm import tqdm
 
 
-def get_target_date(days_ago=7): # 默认2天的文章
+def get_target_date(days_ago=2):
     today = datetime.datetime.now()
     target_date = today - datetime.timedelta(days=days_ago)
     return target_date.strftime("%Y-%m-%d")
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     search_terms_str = os.environ.get("SEARCH_TERMS", '"transformer","large language model"')
     search_terms = [term.strip() for term in search_terms_str.split(",")]
     max_results = int(os.environ.get("MAX_RESULTS", "10"))
-    days_ago = int(os.environ.get("DAYS_AGO", "2"))
+    days_ago = int(os.environ.get("DAYS_AGO", "7")) # 修改为7天的
 
     target_date = get_target_date(days_ago)
     today_date = datetime.datetime.now().strftime("%Y-%m-%d")
