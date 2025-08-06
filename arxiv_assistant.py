@@ -85,7 +85,7 @@ def search_arxiv_papers(search_term, target_date, max_results=10):
 
     return papers
 
-def search_by_cross_categories(target_date, max_results=50):
+def search_by_cross_categories(target_date, max_results=50): # 50是备用值
     """
     专门用于搜索交叉领域的论文, 例如 (AI/LG AND q-bio).
     """
@@ -93,7 +93,7 @@ def search_by_cross_categories(target_date, max_results=50):
     base_url = "http://export.arxiv.org/api/query?"
     
     # 核心修改：使用 AND 和 () 构建精确的查询逻辑
-    # 查找 (cs.AI 和 q-bio.*) 或 (cs.LG 和 q-bio.*) 的论文
+    # 查找 (cs.AI 和 q-bio.*) 或 (cs.LG 和 q-bio.*) 的论文 / 只用含有即可
     search_query = f"search_query=(cat:cs.AI+AND+cat:q-bio.*)+OR+(cat:cs.LG+AND+cat:q-bio.*)&start=0&max_results={max_results}&sortBy=submittedDate&sortOrder=descending"
     
     url = base_url + search_query
@@ -244,7 +244,7 @@ if __name__ == "__main__":
     search_terms_str = os.environ.get("SEARCH_TERMS", '"transformer","large language model"')
     search_terms = [term.strip() for term in search_terms_str.split(",")]
     max_results = int(os.environ.get("MAX_RESULTS", "10"))
-    days_ago = int(os.environ.get("DAYS_AGO", "30")) # 修改为7天的
+    days_ago = int(os.environ.get("DAYS_AGO", "2")) # ❗修改查看时间
 
     target_date = get_target_date(days_ago)
     today_date = datetime.datetime.now().strftime("%Y-%m-%d")
