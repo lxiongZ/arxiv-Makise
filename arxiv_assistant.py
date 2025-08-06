@@ -26,7 +26,9 @@ def get_target_date(days_ago=2):
 def search_arxiv_papers(search_term, target_date, max_results=10):
     papers = []
     base_url = "http://export.arxiv.org/api/query?"
-    search_query = f"search_query=all:{search_term}+AND+cat:cs.*&start=0&max_results={max_results}&sortBy=submittedDate&sortOrder=descending"
+    categories = "(cat:cs.AI+OR+cat:cs.LG+OR+cat:q-bio.*+OR+cat:physics.chem-ph)"
+    search_query = f"search_query=all:{search_term}+AND+{categories}&start=0&max_results={max_results}&sortBy=submittedDate&sortOrder=descending"
+    # search_query = f"search_query=all:{search_term}+AND+cat:cs.*&start=0&max_results={max_results}&sortBy=submittedDate&sortOrder=descending"
     url = base_url + search_query
 
     headers = {"User-Agent": "Mozilla/5.0"}
