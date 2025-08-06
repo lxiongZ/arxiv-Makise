@@ -85,64 +85,74 @@ def search_arxiv_papers(search_term, target_date, max_results=10):
 
     return papers
 
-# def search_by_combined_categories(target_date, max_results=100):
-#     papers = []
-#     base_url = "http://export.arxiv.org/api/query?"
-#     search_query = f"search_query=cat:cs.AI+OR+cat:cs.LG+OR+cat:q-bio.*&start=0&max_results={max_results}&sortBy=submittedDate&sortOrder=descending"
-#     url = base_url + search_query
+def search_by_cross_categories(target_date, max_results=50):
+    """
+    专门用于搜索交叉领域的论文, 例如 (AI/LG AND q-bio).
+    """
+    papers = []
+    base_url = "http://export.arxiv.org/api/query?"
+    
+    # 核心修改：使用 AND 和 () 构建精确的查询逻辑
+    # 查找 (cs.AI 和 q-bio.*) 或 (cs.LG 和 q-bio.*) 的论文
+    search_query = f"search_query=(cat:cs.AI+AND+cat:q-bio.*)+OR+(cat:cs.LG+AND+cat:q-bio.*)&start=0&max_results={max_results}&sortBy=submittedDate&sortOrder=descending"
+    
+    url = base_url + search_query
 
-#     headers = {"User-Agent": "Mozilla/5.0"}
-#     try:
-#         response = requests.get(url, headers=headers, timeout=10)
-#         if response.status_code != 200:
-#             print("分类组合查询失败。")
-#             return []
-#     except requests.exceptions.RequestException as e:
-#         print(f"分类组合请求失败: {e}")
-#         return []
+    headers = {"User-Agent": "Mozilla/5.0"}
+    for attempt in range(10):
+        try:
+            response = requests.get(url, headers=headers, timeout=15) # 增加超时时间
+            if response.status_code == 200:
+                break
+            # 如果出现 400 Bad Request，通常是查询语法问题
+            elif response.status_code == 400:
+                print(f"交叉领域查询失败，API返回400错误，请检查查询语法: {search_query}")
+                return []
+        except requests.exceptions.RequestException as e:
+            print(f"交叉领域查询第 {attempt + 1} 次尝试失败: {e}")
+            time.sleep(2)
+    else:
+        print("交叉领域查询请求失败。")
+        return []
 
-#     root = ET.fromstring(response.content)
-#     namespaces = {"atom": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
-#     entries = root.findall(".//atom:entry", namespaces)
-#     if not entries:
-#         return []
+    root = ET.fromstring(response.content)
+    namespaces = {"atom": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
+    entries = root.findall(".//atom:entry", namespaces)
+    if not entries:
+        return []
 
-#     today_str = datetime.datetime.now().strftime("%Y-%m-%d")
-#     target_date_obj = datetime.datetime.strptime(target_date, "%Y-%m-%d")
-#     today_obj = datetime.datetime.strptime(today_str, "%Y-%m-%d")
+    today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    target_date_obj = datetime.datetime.strptime(target_date, "%Y-%m-%d")
+    today_obj = datetime.datetime.strptime(today_str, "%Y-%m-%d")
 
-#     for entry in entries:
-#         title = entry.find("./atom:title", namespaces).text.strip()
-#         summary = entry.find("./atom:summary", namespaces).text.strip()
-#         url = entry.find("./atom:id", namespaces).text.strip()
-#         pub_date_str = entry.find("./atom:published", namespaces).text
-#         pub_date = datetime.datetime.strptime(pub_date_str, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d")
-#         pub_date_obj = datetime.datetime.strptime(pub_date, "%Y-%m-%d")
-#         authors = [a.find("./atom:name", namespaces).text.strip() for a in entry.findall("./atom:author", namespaces)]
-#         arxiv_id = url.split("/")[-1]
-#         categories = [c.get("term") for c in entry.findall("./atom:category", namespaces)]
-#         comments_elem = entry.find("./arxiv:comment", namespaces)
-#         comments = comments_elem.text.strip() if comments_elem is not None and comments_elem.text else None
+    for entry in entries:
+        pub_date_str = entry.find("./atom:published", namespaces).text
+        pub_date = datetime.datetime.strptime(pub_date_str, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d")
+        pub_date_obj = datetime.datetime.strptime(pub_date, "%Y-%m-%d")
 
-#         if target_date_obj <= pub_date_obj <= today_obj:
-#             # 检查是否同时包含 AI/LG 和 q-bio
-#             has_ai_or_lg = any(cat in ["cs.AI", "cs.LG"] for cat in categories)
-#             has_qbio = any(cat.startswith("q-bio.") for cat in categories)
+        if target_date_obj <= pub_date_obj <= today_obj:
+            title = entry.find("./atom:title", namespaces).text.strip()
+            summary = entry.find("./atom:summary", namespaces).text.strip()
+            url = entry.find("./atom:id", namespaces).text.strip()
+            authors = [a.find("./atom:name", namespaces).text.strip() for a in entry.findall("./atom:author", namespaces)]
+            arxiv_id = url.split("/")[-1]
+            categories = [c.get("term") for c in entry.findall("./atom:category", namespaces)]
+            comments_elem = entry.find("./arxiv:comment", namespaces)
+            comments = comments_elem.text.strip() if comments_elem is not None and comments_elem.text else None
             
-#             if has_ai_or_lg and has_qbio:
-#                 papers.append({
-#                     "title": title,
-#                     "authors": authors,
-#                     "url": url,
-#                     "arxiv_id": arxiv_id,
-#                     "pub_date": pub_date,
-#                     "summary": summary,
-#                     "categories": categories,
-#                     "comments": comments,
-#                 })
+            papers.append({
+                "title": title,
+                "authors": authors,
+                "url": url,
+                "arxiv_id": arxiv_id,
+                "pub_date": pub_date,
+                "summary": summary,
+                "categories": categories,
+                "comments": comments,
+            })
 
-#     print(f"组合分类检索找到 {len(papers)} 篇论文。")
-#     return papers
+    print(f"交叉领域 (AI/LG + q-bio) 检索找到 {len(papers)} 篇论文。")
+    return papers
 
 
 def process_with_openai(text, prompt_template, openai_api_key, model_name="gpt-3.5-turbo", api_base=None):
@@ -250,14 +260,17 @@ if __name__ == "__main__":
                 all_papers[paper["arxiv_id"]] = paper
             keyword_papers[search_term].append(paper["arxiv_id"])
     
-    # # 🔍 添加组合分类检索（不使用关键词）
-    # combined_papers = search_by_combined_categories(target_date, max_results * 2)
-    # keyword_papers["分类组合（AI+q-bio 或 LG+q-bio）"] = []
+    # 2. 🔍 添加新的交叉领域搜索 (不使用关键词)
+    # 使用新函数！
+    cross_papers = search_by_cross_categories(target_date, max_results * 2) # 可以给它更多的 results 限额
+    # 为这部分结果在邮件中创建一个专门的标题
+    cross_category_key = "交叉领域 (AI/LG + q-bio)"
+    keyword_papers[cross_category_key] = []
 
-    # for paper in combined_papers:
-    #     if paper["arxiv_id"] not in all_papers:
-    #         all_papers[paper["arxiv_id"]] = paper
-    #     keyword_papers["分类组合（AI+q-bio 或 LG+q-bio）"].append(paper["arxiv_id"])
+    for paper in cross_papers:
+        if paper["arxiv_id"] not in all_papers:
+            all_papers[paper["arxiv_id"]] = paper
+        keyword_papers[cross_category_key].append(paper["arxiv_id"])
 
     if not all_papers:
         print("没有找到符合条件的论文。")
@@ -292,7 +305,12 @@ if __name__ == "__main__":
             for pid in arxiv_ids
         ]
 
-    html_content = render_email_html(papers_by_keyword, search_terms, today_date, f"{target_date} - {today_date}")
+    # 在渲染邮件时，需要把新的 key 也传进去
+    # 创建一个新的列表，包含关键词和我们自定义的交叉领域key
+    all_search_keys = search_terms + ([cross_category_key] if cross_papers else [])
+    
+    html_content = render_email_html(papers_by_keyword, all_search_keys, today_date, f"{target_date} - {today_date}")
+    # html_content = render_email_html(papers_by_keyword, search_terms, today_date, f"{target_date} - {today_date}") # 原本的
 
     send_email(
         f"arXiv论文日报 - {today_date} - {len(all_papers)}篇论文",
