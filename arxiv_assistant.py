@@ -88,6 +88,8 @@ def search_arxiv_papers(search_term, target_date, max_results=10):
 def search_by_combined_categories(target_date, max_results=100):
     papers = []
     base_url = "http://export.arxiv.org/api/query?"
+    
+    # 修改1: 使用更大的搜索范围来获取可能的跨学科论文
     search_query = f"search_query=cat:cs.AI+OR+cat:cs.LG+OR+cat:q-bio.*&start=0&max_results={max_results}&sortBy=submittedDate&sortOrder=descending"
     url = base_url + search_query
 
@@ -125,22 +127,22 @@ def search_by_combined_categories(target_date, max_results=100):
         comments = comments_elem.text.strip() if comments_elem is not None and comments_elem.text else None
 
         if target_date_obj <= pub_date_obj <= today_obj:
-            # ✅ 筛选同时包含 cs.AI 或 cs.LG，且 q-bio.*
+            # 修改2: 恢复原逻辑 - 筛选同时包含 AI/LG 和 q-bio 的跨学科论文
             has_ai_or_lg = "cs.AI" in categories or "cs.LG" in categories
             has_qbio = any(cat.startswith("q-bio.") for cat in categories)
+            
+            # 只保留同时包含 AI/LG 和 q-bio 分类的论文
             if has_ai_or_lg and has_qbio:
-                papers.append(
-                    {
-                        "title": title,
-                        "authors": authors,
-                        "url": url,
-                        "arxiv_id": arxiv_id,
-                        "pub_date": pub_date,
-                        "summary": summary,
-                        "categories": categories,
-                        "comments": comments,
-                    }
-                )
+                papers.append({
+                    "title": title,
+                    "authors": authors,
+                    "url": url,
+                    "arxiv_id": arxiv_id,
+                    "pub_date": pub_date,
+                    "summary": summary,
+                    "categories": categories,
+                    "comments": comments,
+                })
 
     print(f"组合分类检索找到 {len(papers)} 篇论文。")
     return papers
